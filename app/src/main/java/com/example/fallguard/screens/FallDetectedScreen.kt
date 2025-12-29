@@ -29,6 +29,7 @@ import kotlinx.coroutines.delay
 @Composable
 fun FallDetectedScreen(
     onCancel: () -> Unit,
+    onSendAlert: () -> Unit
 ) {
     var timer by remember { mutableIntStateOf(30) }
     var alertSent by remember { mutableStateOf(false) }
@@ -39,6 +40,7 @@ fun FallDetectedScreen(
                 delay(1000)
                 timer--
             }
+            onSendAlert()
             alertSent = true
         }
     }

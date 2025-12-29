@@ -6,11 +6,17 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.AndroidViewModel
 import com.example.fallguard.model.UserData
+import com.example.fallguard.notification.NotificationHelper
 import com.example.fallguard.repository.UserRepository
+import com.example.fallguard.sensor.FallDetector
 
 class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     private val userRepository = UserRepository(application)
+    private val notificationHelper = NotificationHelper(application)
+    private val fallDetector = FallDetector(application) {
+        fallDetected = true
+    }
 
     var userData by mutableStateOf<UserData?>(null)
         private set
@@ -18,8 +24,21 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     var isTrackingActive by mutableStateOf(false)
         private set
 
+    var fallDetected by mutableStateOf(false)
+        private set
+
     init {
         userData = userRepository.getUser()
+    }
+
+    fun onFallHandled() {
+        fallDetected = false
+    }
+
+    fun sendFallAlert() {
+        userData?.let {
+            notificationHelper.sendAlert(it)
+        }
     }
 
     fun registerOrUpdateUser(data: UserData) {
@@ -29,7 +48,11 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     fun toggleTracking() {
         isTrackingActive = !isTrackingActive
-        // TODO: Implement tracking logic here
+        if (isTrackingActive) {
+            fallDetector.start()
+        } else {
+            fallDetector.stop()
+        }
     }
 
     fun isUserRegistered(): Boolean {

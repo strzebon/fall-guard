@@ -1,9 +1,14 @@
 package com.example.fallguard
 
+import android.Manifest
+import android.content.pm.PackageManager
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.runtime.LaunchedEffect
+import androidx.core.content.ContextCompat
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -20,14 +25,31 @@ object Routes {
 }
 
 class MainActivity : ComponentActivity() {
+
+    private val requestPermissionLauncher = registerForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { isGranted: Boolean ->
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.SEND_SMS) != PackageManager.PERMISSION_GRANTED) {
+            requestPermissionLauncher.launch(Manifest.permission.SEND_SMS)
+        }
+
         setContent {
             MaterialTheme {
                 val viewModel: MainViewModel = viewModel()
                 val navController = rememberNavController()
 
                 val startDestination = if (viewModel.isUserRegistered()) Routes.HOME else Routes.ONBOARDING
+
+                if (viewModel.fallDetected) {
+                    LaunchedEffect(Unit) {
+                        navController.navigate(Routes.FALL_DETECTED)
+                    }
+                }
 
                 NavHost(navController = navController, startDestination = startDestination) {
 
@@ -60,7 +82,11 @@ class MainActivity : ComponentActivity() {
                     composable(Routes.FALL_DETECTED) {
                         FallDetectedScreen(
                             onCancel = {
+                                viewModel.onFallHandled()
                                 navController.popBackStack()
+                            },
+                            onSendAlert = {
+                                viewModel.sendFallAlert()
                             }
                         )
                     }
